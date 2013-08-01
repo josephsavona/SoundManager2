@@ -58,21 +58,7 @@ package {
     public var autoLoad: Boolean = false;
     public var pauseOnBufferFull: Boolean = false; // only applies to RTMP
     public var loops: Number = 1;
-    public var lastValues: Object = {
-      bytes: 0,
-      position: 0,
-      duration: 0,
-      volume: 100,
-      pan: 0,
-      loops: 1,
-      leftPeak: 0,
-      rightPeak: 0,
-      waveformDataArray: null,
-      eqDataArray: null,
-      isBuffering: null,
-      bufferLength: 0,
-      progressBufferedLength: 0
-    };
+    public var lastValues: Object;
     public var didLoad: Boolean = false;
     public var useEvents: Boolean = false;
     public var sound: Sound = new Sound();
@@ -112,6 +98,23 @@ package {
         this.bufferTime = netStreamBufferTime;
       }
       this.checkPolicyFile = checkPolicyFile;
+
+      this.lastValues = {
+        bytes: 0,
+        bufferLength: 0,
+        duration: 0,
+        eqDataArray: null,
+        isBuffering: null,
+        leftPeak: 0,
+        loops: 1,
+        pan: 0,
+        position: 0,
+        rightPeak: 0,
+        volume: 100,
+        waveformDataArray: null,
+        lastEndTime: 0,
+        lastExtractTo: 0
+      };
 
       writeDebug('SoundManager2_SMSound_AS3: Got duration: '+duration+', autoPlay: '+autoPlay);
 
@@ -383,29 +386,110 @@ package {
 
     private function _onprogress(event: Object) : void {
       var bytes:ByteArray = new ByteArray();
-      var extractLength:int = event.bytesLoaded - this.lastValues.progressBufferedLength;
-      var extractFrom:int = this.lastValues.progressBufferedLength;
-      var extractedData:Array = [];
 
+      // times of the current extract, in milliseconds
+      var startTime:Number = this.lastValues.lastEndTime;
+      var endTime:Number = Math.floor(this.length);
+      var timeLength:Number = endTime - startTime;
+
+      // sample offsets conversion of the above time range
+      var extractFrom:Number = this.lastValues.lastExtractTo;
+      var extractAmount:Number = Math.floor(timeLength * 44.1);
+      this.lastValues.lastEndTime = endTime;
+      this.lastValues.lastExtractTo = extractFrom + extractAmount;
+
+      var lastTime:Number = 0;
+      var currTime:Number = 0;
+
+      this.extract(bytes, extractAmount, extractFrom);
+      bytes.position = 0;
+
+      // per-second data points
       var leftMin:Number = Number.MAX_VALUE;
       var leftMax:Number = Number.MIN_VALUE;
       var rightMin:Number = Number.MAX_VALUE;
       var rightMax:Number = Number.MIN_VALUE;
       var leftVal:Number = 0;
       var rightVal:Number = 0;
+
+      lastTime = startTime;
+      while (bytes.bytesAvailable > 0) {
+        currTime = Math.floor((((bytes.position / bytes.length) * timeLength) + startTime) / 1000);
+
+        leftVal = bytes.readFloat();
+        rightVal = bytes.readFloat();
+        bytes.position += 4096; //skip ahead a bit to speed computation
+
+        if (leftVal < leftMin) leftMin = leftVal;
+        if (leftVal > leftMax) leftMax = leftVal;
+        if (rightVal < rightMin) rightMin = rightVal;
+        if (rightVal > rightMax) rightMax = rightVal;
+
+        if (currTime != lastTime) {
+          leftVal = Math.max(Math.abs(leftMin), leftMax);
+          rightVal = Math.max(Math.abs(rightMin), rightMax);
+          if (lastTime % 100 == 0) {
+            writeDebug('bytes position/length: ' + (bytes.position / bytes.length));
+            ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, leftVal, rightVal);
+          }
+
+          leftMin = Number.MAX_VALUE;
+          leftMax = Number.MIN_VALUE;
+          rightMin = Number.MAX_VALUE;
+          rightMax = Number.MIN_VALUE;
+          lastTime = currTime;
+        }
+      }
+    }
+
+    private function __onprogress(event: Object) : void {
+      //if (event.bytesLoaded <= 0) return;
+
+      var bytes:ByteArray = new ByteArray();
+      var bytesPerSecond:Number = 88200; // 1 sec @ 44.1khz => 88200 bytes
+      var pairsPerSecond:Number = 11025; // 2 floats per interval, 4 bytes per float => 88200 / 8 bytes => 11025 intervals
+
+      // ensure reading data for a whole second
+      var extractFrom:Number = this.lastValues.progressExtractedTo;
+      var extractLength:Number = event.bytesLoaded - this.lastValues.progressExtractedTo;
+      var startSecond:Number = Math.floor(extractFrom / bytesPerSecond);
+      var extractSeconds:Number = Math.floor(extractLength / bytesPerSecond);
+      extractLength = bytesPerSecond * extractSeconds;
+      this.lastValues.progressExtractedTo += extractLength;
+
+      // per-second data points
+      var leftMin:Number;
+      var leftMax:Number;
+      var rightMin:Number;
+      var rightMax:Number;
+      var leftVal:Number = 0;
+      var rightVal:Number = 0;
       var timeStamp:Number = 0;
 
-      this.lastValues.progressBufferedLength = event.bytesLoaded;
       this.extract(bytes, extractLength, extractFrom);
       bytes.position = 0;
 
-      //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", bytes.bytesAvailable, 'from ' + extractFrom + ' length ' + extractLength);
+      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'debugData', '', {
+        bytesLoaded: event.bytesLoaded,
+        bytesTotal: event.bytesTotal,
+        extractFrom: extractFrom, 
+        extractLength: extractLength, 
+        startSecond: startSecond,
+        extractSeconds: extractSeconds,
+        progressExtractedTo: this.lastValues.progressExtractedTo,
+        soundLenth: this.length
+      });
 
-      // 1 sec @ 44.1khz => 88200 bytes
-      // 2 floats per interval => 88200 / 8 bytes => 11025 intervals
-      timeStamp = Math.ceil(extractFrom / 88200);
-      while (bytes.bytesAvailable > 88200) {
-        for (var i:int = 0; i < 11025; i++) {
+      for (var s:int = 0; s < extractSeconds; s++) {
+        leftMin = Number.MAX_VALUE;
+        leftMax = Number.MIN_VALUE;
+        rightMin = Number.MAX_VALUE;
+        rightMax = Number.MIN_VALUE;
+        timeStamp = startSecond + s;
+
+        for (var i:int = 0; i < pairsPerSecond; i++) {
+          if (bytes.bytesAvailable < 8) break;
+
           leftVal = bytes.readFloat();
           rightVal = bytes.readFloat();
 
@@ -417,7 +501,6 @@ package {
         leftVal = Math.max(Math.abs(leftMin), leftMax);
         rightVal = Math.max(Math.abs(rightMin), rightMax);
         ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", timeStamp, leftVal, rightVal);
-        timeStamp += 1;
       }
     }
 
@@ -426,8 +509,8 @@ package {
         bytesLoaded: this.bytesLoaded,
         bytesTotal: this.bytesTotal
       });
-      this.removeEventListener(Event.SOUND_COMPLETE, _onfinish);
       this.removeEventListener(ProgressEvent.PROGRESS, _onprogress);
+      this.removeEventListener(Event.SOUND_COMPLETE, _onfinish);
     }
 
     public function loadSound(sURL: String) : void {

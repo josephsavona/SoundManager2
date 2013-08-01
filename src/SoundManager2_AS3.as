@@ -753,7 +753,9 @@ package {
         loops: loops||1,
         leftPeak: 0,
         rightPeak: 0,
-        bufferLength: 0
+        bufferLength: 0,
+        lastEndTime: 0,
+        lastExtractTo: 0
       };
     }
 
