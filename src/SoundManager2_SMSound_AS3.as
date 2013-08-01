@@ -395,12 +395,11 @@ package {
       var rightVal:Number = 0;
 
       this.lastValues.progressBufferedLength = event.bytesLoaded;
-      //this.extract(bytes, extractLength, extractFrom);
-      //bytes.position = 0;
+      this.extract(bytes, extractLength, extractFrom);
+      bytes.position = 0;
 
       //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", bytes.bytesAvailable, 'from ' + extractFrom + ' length ' + extractLength);
 
-      /*
       while (bytes.bytesAvailable > 88200) {
         for (var i:int = 0; i < 2205; i++) {
           leftVal = bytes.readFloat();
@@ -415,7 +414,6 @@ package {
         //extractedData.push(rightMax);
         ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", leftMax, rightMax);
       }
-      */
 
       /*
       this.extract(bytes, extractLength, extractFrom);
@@ -431,7 +429,7 @@ package {
       }
       */
 
-      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'length: ' + extractLength + ' from: ' + extractFrom, extractedData);
+      //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'length: ' + extractLength + ' from: ' + extractFrom, extractedData);
     }
 
     private function _onfinish() : void {
