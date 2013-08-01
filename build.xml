@@ -174,12 +174,12 @@
 </exec>
 
 <echo>Building debug version, Flash 8/AS2...</echo>
-
+<!-- 
 <exec executable="${mtasc}">
  <arg line='-swf swf/soundmanager2_debug.swf -main -header 16:16:30 src/SoundManager2.as -version 8'/>
 </exec>
 
-<echo>Building debug version, Flash 9/AS3...</echo>
+ --><echo>Building debug version, Flash 9/AS3...</echo>
 
 <exec executable="${mxmlc}">
  <arg line='-debug=true -static-link-runtime-shared-libraries=true -optimize=true -o swf/soundmanager2_flash9_debug.swf -file-specs src/SoundManager2_AS3.as'/>
@@ -293,32 +293,32 @@
 <replace file="tmp/soundmanager2_flash_xdomain/nodebug/SoundManager2_AS3.as" token="var allow_xdomain_scripting:Boolean = false;" value="var allow_xdomain_scripting:Boolean = true;"/>
 
 <echo>Building no-debug SWFs...</echo>
-
+<!-- 
 <exec executable="${mtasc}">
  <arg line='-swf swf/soundmanager2.swf -main -header 16:16:30 tmp/soundmanager2_flash_nodebug/SoundManager2.as -version 8'/>
 </exec>
 
-<exec executable="${mxmlc}">
+ --><exec executable="${mxmlc}">
  <arg line='-static-link-runtime-shared-libraries=true -optimize=true -o swf/soundmanager2_flash9.swf -file-specs tmp/soundmanager2_flash_nodebug/SoundManager2_AS3.as'/>
 </exec>
 
 <echo>Building debug cross-domain SWFs...</echo>
-
+<!-- 
 <exec executable="${mtasc}">
  <arg line='-swf tmp/soundmanager2_flash_xdomain/soundmanager2_debug.swf -main -header 16:16:30 tmp/soundmanager2_flash_xdomain/SoundManager2.as -version 8'/>
 </exec>
 
-<exec executable="${mxmlc}">
+ --><exec executable="${mxmlc}">
  <arg line='-debug=true -static-link-runtime-shared-libraries=true -optimize=true -o tmp/soundmanager2_flash_xdomain/soundmanager2_flash9_debug.swf -file-specs tmp/soundmanager2_flash_xdomain/SoundManager2_AS3.as'/>
 </exec>
 
 <echo>Building no-debug cross-domain SWFs...</echo>
-
+<!-- 
 <exec executable="${mtasc}">
  <arg line='-swf tmp/soundmanager2_flash_xdomain/soundmanager2.swf -main -header 16:16:30 tmp/soundmanager2_flash_xdomain/nodebug/SoundManager2.as -version 8'/>
 </exec>
 
-<exec executable="${mxmlc}">
+ --><exec executable="${mxmlc}">
  <arg line='-static-link-runtime-shared-libraries=true -optimize=true -o tmp/soundmanager2_flash_xdomain/soundmanager2_flash9.swf -file-specs tmp/soundmanager2_flash_xdomain/nodebug/SoundManager2_AS3.as'/>
 </exec>
 

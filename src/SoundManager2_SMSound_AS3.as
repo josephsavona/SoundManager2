@@ -21,9 +21,11 @@ package {
   import flash.media.SoundMixer;
   import flash.net.URLRequest;
   import flash.utils.ByteArray;
+  import flash.utils.Endian;
   import flash.utils.getTimer;
   import flash.net.NetConnection;
   import flash.net.NetStream;
+  import mx.utils.Base64Encoder;
 
   public class SoundManager2_SMSound_AS3 extends Sound {
 
@@ -68,7 +70,8 @@ package {
       waveformDataArray: null,
       eqDataArray: null,
       isBuffering: null,
-      bufferLength: 0
+      bufferLength: 0,
+      progressBufferedLength: 0
     };
     public var didLoad: Boolean = false;
     public var useEvents: Boolean = false;
@@ -279,7 +282,6 @@ package {
       // writeDebug('firing _oncaptiondata for '+this.sID);
 
       ExternalInterface.call(this.sm.baseJSObject + "['" + this.sID + "']._oncaptiondata", infoObject['dynamicMetadata']);
-
     }
 
     public function getWaveformData() : void {
@@ -358,6 +360,7 @@ package {
         if (!this.soundChannel || allowMultiShot) {
           this.soundChannel = this.play(nMsecOffset, nLoops);
           this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
+          this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
           this.applyTransform();
         } else {
           // writeDebug('start: was already playing, no-multishot case. Seeking to '+nMsecOffset+', '+nLoops+(nLoops==1?' loop':' loops'));
@@ -367,6 +370,7 @@ package {
           }
           this.soundChannel = this.play(nMsecOffset, nLoops); // start playing at new position
           this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
+          this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
           this.applyTransform();
         }
       }
@@ -377,31 +381,76 @@ package {
 
     }
 
+    private function _onprogress(event: Object) : void {
+      var bytes:ByteArray = new ByteArray();
+      var extractLength:int = event.bytesLoaded - this.lastValues.progressBufferedLength;
+      var extractFrom:int = this.lastValues.progressBufferedLength;
+      var extractedData:Array = [];
+
+      var leftMin:Number = Number.MIN_VALUE;
+      var leftMax:Number = Number.MAX_VALUE;
+      var rightMin:Number = Number.MIN_VALUE;
+      var rightMax:Number = Number.MAX_VALUE;
+      var leftVal:Number = 0;
+      var rightVal:Number = 0;
+
+      this.lastValues.progressBufferedLength = event.bytesLoaded;
+      //this.extract(bytes, extractLength, extractFrom);
+      //bytes.position = 0;
+
+      //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", bytes.bytesAvailable, 'from ' + extractFrom + ' length ' + extractLength);
+
+      /*
+      while (bytes.bytesAvailable > 88200) {
+        for (var i:int = 0; i < 2205; i++) {
+          leftVal = bytes.readFloat();
+          rightVal = bytes.readFloat();
+
+          if (leftVal < leftMin) leftMin = leftVal;
+          if (leftVal > leftMax) leftMax = leftVal;
+          if (rightVal < rightMin) rightMin = rightVal;
+          if (rightVal > rightMax) rightMax = rightVal;
+        }
+        //extractedData.push(leftMax);
+        //extractedData.push(rightMax);
+        ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", leftMax, rightMax);
+      }
+      */
+
+      /*
+      this.extract(bytes, extractLength, extractFrom);
+      bytes.position = 0;
+
+      while (bytes.bytesAvailable > 0) {
+        for (var i: int = 0; i < 3; i++) {
+          var leftVal:Number = bytes.readFloat();
+          var rightVal:Number = bytes.readFloat();
+        }
+        extractedData.push(leftVal);
+        extractedData.push(rightVal);
+      }
+      */
+
+      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'length: ' + extractLength + ' from: ' + extractFrom, extractedData);
+    }
+
     private function _onfinish() : void {
+      this._onprogress({
+        bytesLoaded: this.bytesLoaded,
+        bytesTotal: this.bytesTotal
+      });
       this.removeEventListener(Event.SOUND_COMPLETE, _onfinish);
+      this.removeEventListener(ProgressEvent.PROGRESS, _onprogress);
     }
 
     public function loadSound(sURL: String) : void {
-      if (this.useNetstream) {
-        this.useEvents = true;
-        if (this.didLoad != true) {
-          this.ns.play(this.sURL); // load streams by playing them
-          if (!this.autoPlay) {
-            this.pauseOnBufferFull = true;
-          }
-          this.paused = false;
-        }
-        // this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
-        this.applyTransform();
-      } else {
-        try {
-          this.didLoad = true;
-          this.urlRequest = new URLRequest(sURL);
-          this.soundLoaderContext = new SoundLoaderContext(1000, this.checkPolicyFile); // check for policy (crossdomain.xml) file on remote domains - http://livedocs.adobe.com/flash/9.0/ActionScriptLangRefV3/flash/media/SoundLoaderContext.html
-          this.load(this.urlRequest, this.soundLoaderContext);
-        } catch(e: Error) {
-          writeDebug('error during loadSound(): ' + e.toString());
-        }
+      try {
+        this.didLoad = true;
+        this.urlRequest = new URLRequest(sURL);
+        this.soundLoaderContext = new SoundLoaderContext(1000, this.checkPolicyFile); // check for policy (crossdomain.xml) file on remote domains - http://livedocs.adobe.com/flash/9.0/ActionScriptLangRefV3/flash/media/SoundLoaderContext.html
+        this.load(this.urlRequest, this.soundLoaderContext);
+      } catch(e: Error) {
+        writeDebug('error during loadSound(): ' + e.toString());
       }
     }
 
