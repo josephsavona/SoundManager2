@@ -1366,6 +1366,9 @@ function SoundManager(smURL, smID) {
     };
     this._onprogress = function(timeStamp, leftPeak, rightPeak) {
       console.log('progress: ', timeStamp, leftPeak, rightPeak);
+      if (s._iO.onprogress) {
+        s._iO.onprogress.apply(s, timeStamp, leftPeak, rightPeak);
+      }
     }
     this._onbufferchange = function(nIsBuffering) {
       if (s.playState === 0) {

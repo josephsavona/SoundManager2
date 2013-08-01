@@ -400,6 +400,7 @@ package {
 
       var lastTime:Number = 0;
       var currTime:Number = 0;
+      var timePercent:Number = 0;
 
       this.extract(bytes, extractAmount, extractFrom);
       bytes.position = 0;
@@ -412,13 +413,15 @@ package {
       var leftVal:Number = 0;
       var rightVal:Number = 0;
 
-      lastTime = startTime;
+      lastTime = Math.floor(startTime / 1000);
       while (bytes.bytesAvailable > 0) {
-        currTime = Math.floor((((bytes.position / bytes.length) * timeLength) + startTime) / 1000);
+        timePercent = bytes.position / bytes.length;
+        timePercent = timePercent > 1 ? 1 : (timePercent < 0 ? 0 : timePercent);
+        currTime = Math.floor(((timePercent * timeLength) + startTime) / 1000);
 
         leftVal = bytes.readFloat();
         rightVal = bytes.readFloat();
-        bytes.position += 4096; //skip ahead a bit to speed computation
+        bytes.position += 4410; //skip ahead a bit to speed computation
 
         if (leftVal < leftMin) leftMin = leftVal;
         if (leftVal > leftMax) leftMax = leftVal;
@@ -428,17 +431,14 @@ package {
         if (currTime != lastTime) {
           leftVal = Math.max(Math.abs(leftMin), leftMax);
           rightVal = Math.max(Math.abs(rightMin), rightMax);
-          if (lastTime % 100 == 0) {
-            writeDebug('bytes position/length: ' + (bytes.position / bytes.length));
-            ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, leftVal, rightVal);
-          }
+          ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, leftVal, rightVal);
 
           leftMin = Number.MAX_VALUE;
           leftMax = Number.MIN_VALUE;
           rightMin = Number.MAX_VALUE;
           rightMax = Number.MIN_VALUE;
-          lastTime = currTime;
         }
+        lastTime = currTime;
       }
     }
 

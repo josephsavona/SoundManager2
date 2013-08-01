@@ -3070,6 +3070,10 @@ function SoundManager(smURL, smID) {
 
     this._onprogress = function(timeStamp, leftPeak, rightPeak) {
       console.log('progress: ', timeStamp, leftPeak, rightPeak);
+      if (s._iO.onprogress) {
+        sm2._wD(s.id + ': Progress event: ', timeStamp);
+        s._iO.onprogress.apply(s, timeStamp, leftPeak, rightPeak);
+      }
     }
 
     this._onbufferchange = function(nIsBuffering) {
