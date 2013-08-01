@@ -387,12 +387,13 @@ package {
       var extractFrom:int = this.lastValues.progressBufferedLength;
       var extractedData:Array = [];
 
-      var leftMin:Number = Number.MIN_VALUE;
-      var leftMax:Number = Number.MAX_VALUE;
-      var rightMin:Number = Number.MIN_VALUE;
-      var rightMax:Number = Number.MAX_VALUE;
+      var leftMin:Number = Number.MAX_VALUE;
+      var leftMax:Number = Number.MIN_VALUE;
+      var rightMin:Number = Number.MAX_VALUE;
+      var rightMax:Number = Number.MIN_VALUE;
       var leftVal:Number = 0;
       var rightVal:Number = 0;
+      var timeStamp:Number = 0;
 
       this.lastValues.progressBufferedLength = event.bytesLoaded;
       this.extract(bytes, extractLength, extractFrom);
@@ -400,8 +401,11 @@ package {
 
       //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", bytes.bytesAvailable, 'from ' + extractFrom + ' length ' + extractLength);
 
+      // 1 sec @ 44.1khz => 88200 bytes
+      // 2 floats per interval => 88200 / 8 bytes => 11025 intervals
+      timeStamp = Math.ceil(extractFrom / 88200);
       while (bytes.bytesAvailable > 88200) {
-        for (var i:int = 0; i < 2205; i++) {
+        for (var i:int = 0; i < 11025; i++) {
           leftVal = bytes.readFloat();
           rightVal = bytes.readFloat();
 
@@ -410,26 +414,11 @@ package {
           if (rightVal < rightMin) rightMin = rightVal;
           if (rightVal > rightMax) rightMax = rightVal;
         }
-        //extractedData.push(leftMax);
-        //extractedData.push(rightMax);
-        ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", leftMax, rightMax);
+        leftVal = Math.max(Math.abs(leftMin), leftMax);
+        rightVal = Math.max(Math.abs(rightMin), rightMax);
+        ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", timeStamp, leftVal, rightVal);
+        timeStamp += 1;
       }
-
-      /*
-      this.extract(bytes, extractLength, extractFrom);
-      bytes.position = 0;
-
-      while (bytes.bytesAvailable > 0) {
-        for (var i: int = 0; i < 3; i++) {
-          var leftVal:Number = bytes.readFloat();
-          var rightVal:Number = bytes.readFloat();
-        }
-        extractedData.push(leftVal);
-        extractedData.push(rightVal);
-      }
-      */
-
-      //ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'length: ' + extractLength + ' from: ' + extractFrom, extractedData);
     }
 
     private function _onfinish() : void {
