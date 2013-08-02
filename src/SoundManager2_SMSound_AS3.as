@@ -406,10 +406,10 @@ package {
       bytes.position = 0;
 
       // per-second data points
-      var leftMin:Number = Number.MAX_VALUE;
-      var leftMax:Number = Number.MIN_VALUE;
-      var rightMin:Number = Number.MAX_VALUE;
-      var rightMax:Number = Number.MIN_VALUE;
+      var leftMin:Number = 0;
+      var leftMax:Number = 0;
+      var rightMin:Number = 0;
+      var rightMax:Number = 0;
       var leftVal:Number = 0;
       var rightVal:Number = 0;
 
@@ -421,7 +421,7 @@ package {
 
         leftVal = bytes.readFloat();
         rightVal = bytes.readFloat();
-        bytes.position += 4410; //skip ahead a bit to speed computation
+        bytes.position += 8 * 50; //skip ahead a bit to speed computation
 
         if (leftVal < leftMin) leftMin = leftVal;
         if (leftVal > leftMax) leftMax = leftVal;
@@ -433,10 +433,10 @@ package {
           rightVal = Math.max(Math.abs(rightMin), rightMax);
           ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, leftVal, rightVal);
 
-          leftMin = Number.MAX_VALUE;
-          leftMax = Number.MIN_VALUE;
-          rightMin = Number.MAX_VALUE;
-          rightMax = Number.MIN_VALUE;
+          leftMin = 0;
+          leftMax = 0;
+          rightMin = 0;
+          rightMax = 0;
         }
         lastTime = currTime;
       }

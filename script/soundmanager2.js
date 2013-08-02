@@ -125,6 +125,7 @@ function SoundManager(smURL, smID) {
     'useWaveformData': false, // enable sound spectrum (raw waveform data) - NOTE: May increase CPU load.
     'useEQData': false,       // enable sound EQ (frequency spectrum data) - NOTE: May increase CPU load.
     'onbufferchange': null,   // callback for "isBuffering" property change
+    'onprogress': null,       // callback for data loading progress
     'ondataerror': null       // callback for waveform/eq data access error (flash playing audio in other tabs/domains)
 
   };
@@ -3069,10 +3070,9 @@ function SoundManager(smURL, smID) {
     };
 
     this._onprogress = function(timeStamp, leftPeak, rightPeak) {
-      console.log('progress: ', timeStamp, leftPeak, rightPeak);
       if (s._iO.onprogress) {
-        sm2._wD(s.id + ': Progress event: ', timeStamp);
-        s._iO.onprogress.apply(s, timeStamp, leftPeak, rightPeak);
+        sm2._wD(s.id + ': Progress event: ' + timeStamp);
+        s._iO.onprogress.apply(s, [timeStamp, leftPeak, rightPeak]);
       }
     }
 
