@@ -414,11 +414,13 @@ package {
       var leftVal:Number = 0;
       var rightVal:Number = 0;
 
-      lastTime = Math.floor(startTime / 1000);
+      var FRAME_LENGTH:Number = 500;
+
+      lastTime = Math.floor(startTime / FRAME_LENGTH);
       while (bytes.bytesAvailable > 0) {
         timePercent = bytes.position / bytes.length;
         timePercent = timePercent > 1 ? 1 : (timePercent < 0 ? 0 : timePercent);
-        currTime = Math.floor(((timePercent * timeLength) + startTime) / 1000);
+        currTime = Math.floor(((timePercent * timeLength) + startTime) / FRAME_LENGTH);
 
         leftVal = bytes.readFloat();
         rightVal = bytes.readFloat();
