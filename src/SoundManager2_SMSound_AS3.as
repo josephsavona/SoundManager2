@@ -422,7 +422,10 @@ package {
 
         leftVal = bytes.readFloat();
         rightVal = bytes.readFloat();
-        bytes.position += 8 * 50; //skip ahead a bit to speed computation
+        //bytes.position += 8 * 50; //skip ahead a bit to speed computation
+
+        if (Math.abs(leftVal) >= 0.99) leftVal = 0;
+        if (Math.abs(rightVal) >= 0.99) rightVal = 0;
 
         if (leftVal < leftMin) leftMin = leftVal;
         if (leftVal > leftMax) leftMax = leftVal;
@@ -430,8 +433,10 @@ package {
         if (rightVal > rightMax) rightMax = rightVal;
 
         if (currTime != lastTime) {
-          leftVal = Math.max(Math.abs(leftMin), leftMax);
-          rightVal = Math.max(Math.abs(rightMin), rightMax);
+          //leftVal = Math.max(Math.abs(leftMin), leftMax);
+          //rightVal = Math.max(Math.abs(rightMin), rightMax);
+          leftVal = (leftMax - leftMin) / 2;
+          rightVal = (rightMax - rightMin) / 2;
           extractedData.push(leftVal);
           extractedData.push(rightVal);
 
@@ -445,73 +450,65 @@ package {
       ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
     }
 
-    private function __onprogress(event: Object) : void {
-      //if (event.bytesLoaded <= 0) return;
-
+    private function _onprogressRMS(event: Object) : void {
       var bytes:ByteArray = new ByteArray();
-      var bytesPerSecond:Number = 88200; // 1 sec @ 44.1khz => 88200 bytes
-      var pairsPerSecond:Number = 11025; // 2 floats per interval, 4 bytes per float => 88200 / 8 bytes => 11025 intervals
+      var extractedData:Array = new Array();
 
-      // ensure reading data for a whole second
-      var extractFrom:Number = this.lastValues.progressExtractedTo;
-      var extractLength:Number = event.bytesLoaded - this.lastValues.progressExtractedTo;
-      var startSecond:Number = Math.floor(extractFrom / bytesPerSecond);
-      var extractSeconds:Number = Math.floor(extractLength / bytesPerSecond);
-      extractLength = bytesPerSecond * extractSeconds;
-      this.lastValues.progressExtractedTo += extractLength;
+      // times of the current extract, in milliseconds
+      var startTime:Number = this.lastValues.lastEndTime;
+      var endTime:Number = Math.floor(this.length);
+      var timeLength:Number = endTime - startTime;
 
-      // per-second data points
-      var leftMin:Number;
-      var leftMax:Number;
-      var rightMin:Number;
-      var rightMax:Number;
-      var leftVal:Number = 0;
-      var rightVal:Number = 0;
-      var timeStamp:Number = 0;
+      // sample offsets conversion of the above time range
+      var extractFrom:Number = this.lastValues.lastExtractTo;
+      var extractAmount:Number = Math.floor(timeLength * 44.1);
+      this.lastValues.lastEndTime = endTime;
+      this.lastValues.lastExtractTo = extractFrom + extractAmount;
 
-      this.extract(bytes, extractLength, extractFrom);
+      var lastTime:Number = 0;
+      var currTime:Number = 0;
+      var timePercent:Number = 0;
+
+      this.extract(bytes, extractAmount, extractFrom);
       bytes.position = 0;
 
-      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", 'debugData', '', {
-        bytesLoaded: event.bytesLoaded,
-        bytesTotal: event.bytesTotal,
-        extractFrom: extractFrom, 
-        extractLength: extractLength, 
-        startSecond: startSecond,
-        extractSeconds: extractSeconds,
-        progressExtractedTo: this.lastValues.progressExtractedTo,
-        soundLenth: this.length
-      });
+      // per-second data points
+      var leftAVL:Number = 0;
+      var rightAVL:Number = 0;
+      var countAVL:Number = 0;
+      var leftVal:Number = 0;
+      var rightVal:Number = 0;
 
-      for (var s:int = 0; s < extractSeconds; s++) {
-        leftMin = Number.MAX_VALUE;
-        leftMax = Number.MIN_VALUE;
-        rightMin = Number.MAX_VALUE;
-        rightMax = Number.MIN_VALUE;
-        timeStamp = startSecond + s;
+      lastTime = Math.floor(startTime / 1000);
+      while (bytes.bytesAvailable > 0) {
+        timePercent = bytes.position / bytes.length;
+        timePercent = timePercent > 1 ? 1 : (timePercent < 0 ? 0 : timePercent);
+        currTime = Math.floor(((timePercent * timeLength) + startTime) / 1000);
 
-        for (var i:int = 0; i < pairsPerSecond; i++) {
-          if (bytes.bytesAvailable < 8) break;
+        leftVal = bytes.readFloat();
+        rightVal = bytes.readFloat();
+        leftAVL += leftVal * leftVal;
+        rightAVL += rightVal * rightVal;
+        countAVL ++;
 
-          leftVal = bytes.readFloat();
-          rightVal = bytes.readFloat();
+        if (currTime != lastTime) {
+          leftVal = Math.sqrt(leftAVL / countAVL);
+          rightVal = Math.sqrt(rightAVL / countAVL);
 
-          if (leftVal < leftMin) leftMin = leftVal;
-          if (leftVal > leftMax) leftMax = leftVal;
-          if (rightVal < rightMin) rightMin = rightVal;
-          if (rightVal > rightMax) rightMax = rightVal;
+          extractedData.push(leftVal);
+          extractedData.push(rightVal);
+
+          leftAVL = 0;
+          rightAVL = 0;
+          countAVL = 0;
         }
-        leftVal = Math.max(Math.abs(leftMin), leftMax);
-        rightVal = Math.max(Math.abs(rightMin), rightMax);
-        ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", timeStamp, leftVal, rightVal);
+        lastTime = currTime;
       }
+      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
     }
 
     private function _onfinish() : void {
-      this._onprogress({
-        bytesLoaded: this.bytesLoaded,
-        bytesTotal: this.bytesTotal
-      });
+      this._onprogress({});
       this.removeEventListener(ProgressEvent.PROGRESS, _onprogress);
       this.removeEventListener(Event.SOUND_COMPLETE, _onfinish);
     }
