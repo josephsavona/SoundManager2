@@ -1365,9 +1365,9 @@ function SoundManager(smURL, smID) {
       }
       return true;
     };
-    this._onprogress = function(timeStamp, leftPeak, rightPeak) {
+    this._onprogress = function(startAt, peakData) {
       if (s._iO.onprogress) {
-        s._iO.onprogress.apply(s, [timeStamp, leftPeak, rightPeak]);
+        s._iO.onprogress.apply(s, [startAt, peakData.split('|')]);
       }
     }
     this._onbufferchange = function(nIsBuffering) {

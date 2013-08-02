@@ -3069,10 +3069,10 @@ function SoundManager(smURL, smID) {
 
     };
 
-    this._onprogress = function(timeStamp, leftPeak, rightPeak) {
+    this._onprogress = function(startAt, peakData) {
       if (s._iO.onprogress) {
-        sm2._wD(s.id + ': Progress event: ' + timeStamp);
-        s._iO.onprogress.apply(s, [timeStamp, leftPeak, rightPeak]);
+        sm2._wD(s.id + ': Progress event: ' + startAt);
+        s._iO.onprogress.apply(s, [startAt, peakData.split('|')]);
       }
     }
 

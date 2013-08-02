@@ -386,6 +386,7 @@ package {
 
     private function _onprogress(event: Object) : void {
       var bytes:ByteArray = new ByteArray();
+      var extractedData:Array = new Array();
 
       // times of the current extract, in milliseconds
       var startTime:Number = this.lastValues.lastEndTime;
@@ -431,7 +432,8 @@ package {
         if (currTime != lastTime) {
           leftVal = Math.max(Math.abs(leftMin), leftMax);
           rightVal = Math.max(Math.abs(rightMin), rightMax);
-          ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, leftVal, rightVal);
+          extractedData.push(leftVal);
+          extractedData.push(rightVal);
 
           leftMin = 0;
           leftMax = 0;
@@ -440,6 +442,7 @@ package {
         }
         lastTime = currTime;
       }
+      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
     }
 
     private function __onprogress(event: Object) : void {
