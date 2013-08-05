@@ -417,14 +417,14 @@ package {
       var FRAME_LENGTH:Number = 500;
 
       lastTime = Math.floor(startTime / FRAME_LENGTH);
-      while (bytes.bytesAvailable > 0) {
+      while (bytes.bytesAvailable > 8) {
         timePercent = bytes.position / bytes.length;
         timePercent = timePercent > 1 ? 1 : (timePercent < 0 ? 0 : timePercent);
         currTime = Math.floor(((timePercent * timeLength) + startTime) / FRAME_LENGTH);
 
         leftVal = bytes.readFloat();
         rightVal = bytes.readFloat();
-        //bytes.position += 8 * 50; //skip ahead a bit to speed computation
+        bytes.position += 8 * 100; //skip ahead a bit to speed computation
 
         if (Math.abs(leftVal) >= 0.99) leftVal = 0;
         if (Math.abs(rightVal) >= 0.99) rightVal = 0;
@@ -439,70 +439,13 @@ package {
           //rightVal = Math.max(Math.abs(rightMin), rightMax);
           leftVal = (leftMax - leftMin) / 2;
           rightVal = (rightMax - rightMin) / 2;
-          extractedData.push(leftVal);
-          extractedData.push(rightVal);
+          extractedData.push(leftVal.toFixed(3));
+          extractedData.push(rightVal.toFixed(3));
 
           leftMin = 0;
           leftMax = 0;
           rightMin = 0;
           rightMax = 0;
-        }
-        lastTime = currTime;
-      }
-      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
-    }
-
-    private function _onprogressRMS(event: Object) : void {
-      var bytes:ByteArray = new ByteArray();
-      var extractedData:Array = new Array();
-
-      // times of the current extract, in milliseconds
-      var startTime:Number = this.lastValues.lastEndTime;
-      var endTime:Number = Math.floor(this.length);
-      var timeLength:Number = endTime - startTime;
-
-      // sample offsets conversion of the above time range
-      var extractFrom:Number = this.lastValues.lastExtractTo;
-      var extractAmount:Number = Math.floor(timeLength * 44.1);
-      this.lastValues.lastEndTime = endTime;
-      this.lastValues.lastExtractTo = extractFrom + extractAmount;
-
-      var lastTime:Number = 0;
-      var currTime:Number = 0;
-      var timePercent:Number = 0;
-
-      this.extract(bytes, extractAmount, extractFrom);
-      bytes.position = 0;
-
-      // per-second data points
-      var leftAVL:Number = 0;
-      var rightAVL:Number = 0;
-      var countAVL:Number = 0;
-      var leftVal:Number = 0;
-      var rightVal:Number = 0;
-
-      lastTime = Math.floor(startTime / 1000);
-      while (bytes.bytesAvailable > 0) {
-        timePercent = bytes.position / bytes.length;
-        timePercent = timePercent > 1 ? 1 : (timePercent < 0 ? 0 : timePercent);
-        currTime = Math.floor(((timePercent * timeLength) + startTime) / 1000);
-
-        leftVal = bytes.readFloat();
-        rightVal = bytes.readFloat();
-        leftAVL += leftVal * leftVal;
-        rightAVL += rightVal * rightVal;
-        countAVL ++;
-
-        if (currTime != lastTime) {
-          leftVal = Math.sqrt(leftAVL / countAVL);
-          rightVal = Math.sqrt(rightAVL / countAVL);
-
-          extractedData.push(leftVal);
-          extractedData.push(rightVal);
-
-          leftAVL = 0;
-          rightAVL = 0;
-          countAVL = 0;
         }
         lastTime = currTime;
       }
