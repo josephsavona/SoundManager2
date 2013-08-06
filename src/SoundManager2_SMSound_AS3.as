@@ -414,7 +414,7 @@ package {
       var leftVal:Number = 0;
       var rightVal:Number = 0;
 
-      var FRAME_LENGTH:Number = 500;
+      var FRAME_LENGTH:Number = 250;
 
       lastTime = Math.floor(startTime / FRAME_LENGTH);
       while (bytes.bytesAvailable > 8) {
