@@ -385,13 +385,18 @@ package {
     }
 
     private function _onprogress(event: Object) : void {
+      var FRAME_LENGTH:Number = 250;
       var bytes:ByteArray = new ByteArray();
       var extractedData:Array = new Array();
 
       // times of the current extract, in milliseconds
       var startTime:Number = this.lastValues.lastEndTime;
-      var endTime:Number = Math.floor(this.length);
+      var endTime:Number = Math.floor(this.length / FRAME_LENGTH) * FRAME_LENGTH;
       var timeLength:Number = endTime - startTime;
+
+      if (timeLength <= 0) {
+        return;
+      }
 
       // sample offsets conversion of the above time range
       var extractFrom:Number = this.lastValues.lastExtractTo;
@@ -413,8 +418,6 @@ package {
       var rightMax:Number = 0;
       var leftVal:Number = 0;
       var rightVal:Number = 0;
-
-      var FRAME_LENGTH:Number = 250;
 
       lastTime = Math.floor(startTime / FRAME_LENGTH);
       while (bytes.bytesAvailable > 8) {
@@ -449,6 +452,11 @@ package {
         }
         lastTime = currTime;
       }
+      // get last time block, which by the math.floor rounding will not have been pushed yet
+      leftVal = (leftMax - leftMin) / 2;
+      rightVal = (rightMax - rightMin) / 2;
+      extractedData.push(leftVal.toFixed(3));
+      extractedData.push(rightVal.toFixed(3));
       ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
     }
 
