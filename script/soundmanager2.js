@@ -3072,7 +3072,7 @@ function SoundManager(smURL, smID) {
     this._onprogress = function(startAt, peakData) {
       if (s._iO.onprogress) {
         sm2._wD(s.id + ': Progress event: ' + startAt);
-        s._iO.onprogress.apply(s, [startAt, peakData.split('|')]);
+        s._iO.onprogress.apply(s, [s.id, startAt, peakData.split('|')]);
       }
     }
 

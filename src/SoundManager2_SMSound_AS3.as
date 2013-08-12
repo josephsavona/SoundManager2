@@ -363,7 +363,9 @@ package {
         if (!this.soundChannel || allowMultiShot) {
           this.soundChannel = this.play(nMsecOffset, nLoops);
           this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
-          this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
+          if (this.usePeakData) {
+            this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
+          }
           this.applyTransform();
         } else {
           // writeDebug('start: was already playing, no-multishot case. Seeking to '+nMsecOffset+', '+nLoops+(nLoops==1?' loop':' loops'));
@@ -373,7 +375,9 @@ package {
           }
           this.soundChannel = this.play(nMsecOffset, nLoops); // start playing at new position
           this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
-          this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
+          if (this.usePeakData) {
+            this.addEventListener(ProgressEvent.PROGRESS, _onprogress);
+          }
           this.applyTransform();
         }
       }
