@@ -465,8 +465,10 @@ package {
     }
 
     private function _onfinish() : void {
-      this._onprogress({});
-      this.removeEventListener(ProgressEvent.PROGRESS, _onprogress);
+      if (this.usePeakData) {
+        this._onprogress({});
+        this.removeEventListener(ProgressEvent.PROGRESS, _onprogress);
+      }
       this.removeEventListener(Event.SOUND_COMPLETE, _onfinish);
     }
 
