@@ -122,6 +122,7 @@ package {
           ExternalInterface.addCallback('_externalInterfaceTest', _externalInterfaceTest);
           ExternalInterface.addCallback('_disableDebug', _disableDebug);
           ExternalInterface.addCallback('_getMemoryUse', _getMemoryUse);
+          ExternalInterface.addCallback('_getPeakData', _getPeakData);
           ExternalInterface.addCallback('_createSound', _createSound);
           ExternalInterface.addCallback('_destroySound', _destroySound);
           ExternalInterface.addCallback('_setAutoPlay', _setAutoPlay);
@@ -754,8 +755,7 @@ package {
         leftPeak: 0,
         rightPeak: 0,
         bufferLength: 0,
-        lastEndTime: 0,
-        lastExtractTo: 0
+        lastProgressLength: 0
       };
     }
 
@@ -915,6 +915,13 @@ package {
 
     public function _getMemoryUse() : String {
       return System.totalMemory.toString();
+    }
+
+    public function _getPeakData(sID:String, fromTime:Number, frameLength:Number = 250, numFrames:Number = 16) : String {
+      if (soundObjects[sID]) {
+        return soundObjects[sID].getPeakData(fromTime, frameLength, numFrames);
+      }
+      return null;
     }
 
     // -----------------------------------

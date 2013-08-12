@@ -338,6 +338,12 @@ function SoundManager(smURL, smID) {
     }
     return sm2.sounds[sID].setPosition(nMsecOffset);
   };
+  this.getPeakData = function(sID, fromTime, frameLength, numFrames) {
+    if (!idCheck(sID)) {
+      return null;
+    }
+    return sm2.sounds[sID].getPeakData(fromTime, frameLength, numFrames);
+  }
   this.stop = function(sID) {
     if (!idCheck(sID)) {
       return false;
@@ -939,6 +945,11 @@ function SoundManager(smURL, smID) {
     this.getAutoPlay = function() {
       return s._iO.autoPlay;
     };
+    this.getPeakData = function(fromTime, frameLength, numFrames) {
+      if (!s.isHTML5) {
+        return flash._getPeakData(s.id, fromTime, frameLength, numFrames);
+      }
+    };
     this.setPosition = function(nMsecOffset) {
       if (nMsecOffset === _undefined) {
         nMsecOffset = 0;
@@ -1365,9 +1376,9 @@ function SoundManager(smURL, smID) {
       }
       return true;
     };
-    this._onprogress = function(startAt, peakData) {
+    this._onprogress = function(soundLength) {
       if (s._iO.onprogress) {
-        s._iO.onprogress.apply(s, [s.id, startAt, peakData.split('|')]);
+        s._iO.onprogress.apply(s, [s.id, soundLength]);
       }
     }
     this._onbufferchange = function(nIsBuffering) {

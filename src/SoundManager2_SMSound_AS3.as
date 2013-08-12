@@ -61,6 +61,7 @@ package {
     public var lastValues: Object;
     public var didLoad: Boolean = false;
     public var useEvents: Boolean = false;
+    public var onProgressThrottle:Number = 250;
     public var sound: Sound = new Sound();
 
     public var cc: Object;
@@ -112,8 +113,7 @@ package {
         rightPeak: 0,
         volume: 100,
         waveformDataArray: null,
-        lastEndTime: 0,
-        lastExtractTo: 0
+        lastProgressLength: 0
       };
 
       writeDebug('SoundManager2_SMSound_AS3: Got duration: '+duration+', autoPlay: '+autoPlay);
@@ -388,7 +388,54 @@ package {
 
     }
 
+    public function getPeakData(fromTime:Number, frameLength: Number, numFrames: Number) : String {
+      var bytes:ByteArray = new ByteArray();
+      var extractedData:Array = new Array();
+      var extractTimeLength:Number = frameLength * numFrames;
+      var currFrame:Number = 0;
+      var lastFrame:Number = 0;
+      var leftVal:Number = 0;
+      var rightVal:Number = 0;
+      // number samples to skip to get N samples per second (final number)
+      var frameInc:Number = Math.floor((44100 / (1000 / frameLength)) / 50);
+
+      if (extractTimeLength + fromTime > this.length) {
+        return null;
+      }
+
+      this.extract(bytes, extractTimeLength * 44.1, fromTime * 44.1);
+      bytes.position = 0;
+
+      while (bytes.bytesAvailable) {
+        currFrame = Math.floor(((bytes.position/bytes.length) * extractTimeLength) / frameLength);
+        leftVal = Math.max(Math.abs(bytes.readFloat()), leftVal);
+        rightVal = Math.max(Math.abs(bytes.readFloat()), rightVal);
+        bytes.position += 8 * frameInc;
+
+        if (currFrame != lastFrame) {
+          extractedData.push(leftVal.toFixed(3));
+          extractedData.push(rightVal.toFixed(3))
+
+          leftVal = 0;
+          rightVal = 0;
+          lastFrame = currFrame;
+        }
+      }
+      // get last frame
+      extractedData.push(leftVal.toFixed(3));
+      extractedData.push(rightVal.toFixed(3))
+      return extractedData.join('|');
+    }
+
     private function _onprogress(event: Object) : void {
+      if (this.length != this.lastValues.lastProgressLength) {
+        this.lastValues.lastProgressLength = this.length;
+        ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", this.length);
+      }
+    }
+
+    private function __onprogress(event: Object) : void {
+      var _t:Number = getTimer();
       var FRAME_LENGTH:Number = 250;
       var bytes:ByteArray = new ByteArray();
       var extractedData:Array = new Array();
@@ -461,7 +508,7 @@ package {
       rightVal = (rightMax - rightMin) / 2;
       extractedData.push(leftVal.toFixed(3));
       extractedData.push(rightVal.toFixed(3));
-      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", lastTime, extractedData.join('|'));
+      ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onprogress", _t, getTimer(), extractedData.join('|'));
     }
 
     private function _onfinish() : void {

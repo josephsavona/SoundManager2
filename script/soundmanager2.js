@@ -693,6 +693,13 @@ function SoundManager(smURL, smID) {
 
   };
 
+  this.getPeakData = function(sID, fromTime, frameLength, numFrames) {
+    if (!idCheck(sID)) {
+      return null;
+    }
+    return sm2.sounds[sID].getPeakData(fromTime, frameLength, numFrames);
+  }
+
   /**
    * Calls the stop() method of a SMSound object by ID.
    *
@@ -2185,6 +2192,12 @@ function SoundManager(smURL, smID) {
 
     };
 
+    this.getPeakData = function(fromTime, frameLength, numFrames) {
+      if (!s.isHTML5) {
+        return flash._getPeakData(s.id, fromTime, frameLength, numFrames);
+      }
+    };
+
     /**
      * Sets the position of a sound.
      *
@@ -3069,10 +3082,10 @@ function SoundManager(smURL, smID) {
 
     };
 
-    this._onprogress = function(startAt, peakData) {
+    this._onprogress = function(soundLength) {
       if (s._iO.onprogress) {
-        sm2._wD(s.id + ': Progress event: ' + startAt);
-        s._iO.onprogress.apply(s, [s.id, startAt, peakData.split('|')]);
+        sm2._wD(s.id + ': Progress event: ' + soundLength);
+        s._iO.onprogress.apply(s, [s.id, soundLength]);
       }
     }
 
